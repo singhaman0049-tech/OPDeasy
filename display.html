@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live OPD Display | Smart OPD</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <h1>Smart OPD</h1>
+            <p>Hospital Queue Management System</p>
+        </div>
+        <div class="user-info">
+            <h3>Live Queue</h3>
+            <p>Updates every few seconds</p>
+        </div>
+    </header>
+
+    <nav class="nav" aria-label="Primary navigation">
+        <a href="patient-registration.html">Patient Registration</a>
+        <a href="display.html" class="active">Live Display</a>
+        <a href="doctor-dashboard.html">Doctor Dashboard</a>
+        <a href="login.html">Log out</a>
+    </nav>
+
+    <main class="container">
+        <section class="stats" aria-label="OPD summary">
+            <div class="stat-card">
+                <h3>Registered for OPD</h3>
+                <p id="displayRegisteredStat">0</p>
+                <small>Total registrations today</small>
+            </div>
+            <div class="stat-card">
+                <h3>Average Doctor Time</h3>
+                <p id="displayAverageStat">0m 0s</p>
+                <small>Calculated from consultation time</small>
+            </div>
+            <div class="stat-card">
+                <h3>Now Serving</h3>
+                <p id="displayTokenStat">--</p>
+                <small>Current token number</small>
+            </div>
+            <div class="stat-card">
+                <h3>Current Patient</h3>
+                <p id="displayPatientStat">--</p>
+                <small>Please wait for your token</small>
+            </div>
+        </section>
+
+        <section class="card patient-display">
+            <h2>Patient Display Screen</h2>
+            <div class="display-screen">
+                <p class="display-title">NOW SERVING</p>
+                <h1 class="display-token" id="displayToken">--</h1>
+                <p class="display-name" id="displayPatient">Please wait for your token</p>
+                <div class="display-info">
+                    <div>
+                        <span>Registered for OPD</span>
+                        <strong id="displayRegistered">0</strong>
+                    </div>
+                    <div>
+                        <span>Average Consultation Time</span>
+                        <strong id="displayAverage">0m 0s</strong>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <div class="section-header">
+                <h2>Live Patient Queue</h2>
+                <span>Showing the next 10 active patients</span>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Token</th>
+                            <th>Patient Name</th>
+                            <th>Queue Position</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="livePatientList">
+                        <tr><td class="empty-row" colspan="4">No patients have registered yet.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="footer">
+        <p>© 2026 Smart OPD Queue System</p>
+        <p>Smart • Simple • Patient Friendly</p>
+    </footer>
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Dashboard | Smart OPD</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <h1>Smart OPD</h1>
+            <p>Hospital Queue Management System</p>
+        </div>
+        <div class="user-info">
+            <h3 id="loggedInUser">Doctor</h3>
+            <p>Hospital Doctor Dashboard</p>
+        </div>
+    </header>
+
+    <nav class="nav" aria-label="Primary navigation">
+        <a href="patient-registration.html">Patient Registration</a>
+        <a href="display.html">Live Display</a>
+        <a href="doctor-dashboard.html" class="active">Doctor Dashboard</a>
+        <a href="#history">Previous Day History</a>
+        <a href="login.html">Log out</a>
+    </nav>
+
+    <main class="container">
+        <div class="page-heading">
+            <h2>Doctor Queue Dashboard</h2>
+            <p>Manage the current consultation and monitor the patients still waiting.</p>
+        </div>
+
+        <section class="stats" aria-label="Doctor summary">
+            <div class="stat-card">
+                <h3>Patients Dealt With</h3>
+                <p id="doctorHandled">0</p>
+                <small>Completed consultations</small>
+            </div>
+            <div class="stat-card">
+                <h3>Patients Left</h3>
+                <p id="doctorRemaining">0</p>
+                <small>Waiting and current patient</small>
+            </div>
+            <div class="stat-card">
+                <h3>Total Consultation Time</h3>
+                <p id="doctorTotalTime">0m 0s</p>
+                <small>Resets automatically every 24 hours</small>
+            </div>
+            <div class="stat-card">
+                <h3>Average OPD Time</h3>
+                <p id="doctorAverage">0m 0s</p>
+                <small>Live average per consultation</small>
+            </div>
+        </section>
+
+        <section class="card current-section">
+            <h2>Current Consultation</h2>
+            <div class="current-patient">
+                <div>
+                    <span>Token Number</span>
+                    <strong id="currentToken">--</strong>
+                </div>
+                <div>
+                    <span>Patient Name</span>
+                    <strong id="currentName">No patient is being consulted</strong>
+                </div>
+                <div>
+                    <span>Patient Age</span>
+                    <strong id="currentAge">--</strong>
+                </div>
+            </div>
+            <div class="action-buttons">
+                <button id="nextBtn" class="btn next" type="button">NEXT Patient</button>
+                <button id="skipBtn" class="btn skip" type="button">SKIP Patient</button>
+            </div>
+        </section>
+
+        <section class="card">
+            <div class="section-header">
+                <h2>Active Patient Queue</h2>
+                <span>Live queue status</span>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Token</th>
+                            <th>Name</th>
+                            <th>Age</th>
+                            <th>Arrival Time</th>
+                            <th>Status</th>
+                            <th>Estimated Wait</th>
+                        </tr>
+                    </thead>
+                    <tbody id="doctorQueueTable">
+                        <tr><td class="empty-row" colspan="6">No patients are waiting for consultation.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="history" class="card">
+            <div class="section-header">
+                <h2>Previous Day History</h2>
+                <span>Saved when the daily queue resets</span>
+            </div>
+
+            <div class="stats" aria-label="Previous day consultation summary">
+                <div class="stat-card">
+                    <h3>History Date</h3>
+                    <p id="historyDate">--</p>
+                    <small>Most recent saved OPD day</small>
+                </div>
+                <div class="stat-card">
+                    <h3>Registered Patients</h3>
+                    <p id="historyRegistered">0</p>
+                    <small>Total patient registrations</small>
+                </div>
+                <div class="stat-card">
+                    <h3>Consultations Completed</h3>
+                    <p id="historyCompleted">0</p>
+                    <small>Patients dealt with by the doctor</small>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Consultation Time</h3>
+                    <p id="historyTotalTime">0m 0s</p>
+                    <small>Average: <span id="historyAverageTime">0m 0s</span></small>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Token</th>
+                            <th>Patient Name</th>
+                            <th>Age</th>
+                            <th>Arrival Time</th>
+                            <th>Final Status</th>
+                            <th>Consultation Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTable">
+                        <tr><td class="empty-row" colspan="6">History will appear here after the first 24-hour reset.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>© 2026 Smart OPD Queue System</p>
+        <p>Smart • Simple • Patient Friendly</p>
+    </footer>
+    <script src="app.js"></script>
+</body>
+</html>

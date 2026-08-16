@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Registration | Smart OPD</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <h1>Smart OPD</h1>
+            <p>Hospital Queue Management System</p>
+        </div>
+        <div class="user-info">
+            <h3 id="loggedInUser">Hospital Staff</h3>
+            <p>Reception Desk</p>
+        </div>
+    </header>
+
+    <nav class="nav" aria-label="Primary navigation">
+        <a href="patient-registration.html" class="active">Patient Registration</a>
+        <a href="display.html">Live Display</a>
+        <a href="doctor-dashboard.html">Doctor Dashboard</a>
+        <a href="login.html">Log out</a>
+    </nav>
+
+    <main class="container">
+        <div class="page-heading">
+            <h2>OPD Patient Registration</h2>
+            <p>Add a patient's details to generate a token and place them in the doctor queue.</p>
+        </div>
+
+        <section class="card">
+            <h2>Patient Details</h2>
+            <form id="patientForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="patientName">Patient Name</label>
+                        <input id="patientName" type="text" placeholder="Enter patient name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="patientPhone">Phone Number</label>
+                        <input id="patientPhone" type="tel" placeholder="Enter phone number" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="patientAge">Age</label>
+                        <input id="patientAge" type="number" placeholder="Enter age" min="1" max="120" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="patientReason">Reason for Visit</label>
+                        <input id="patientReason" type="text" placeholder="Example: Fever, check-up">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button class="btn" type="submit">Register Patient</button>
+                </div>
+            </form>
+
+            <div id="registrationNotice" class="notice" role="status">
+                <strong>Patient registered successfully — Token <span id="registeredToken">--</span></strong>
+                The patient has been added to the active OPD queue.
+                <div class="form-actions" style="margin-top: 14px;">
+                    <a class="btn secondary" href="display.html">Open Live Queue Display</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>© 2026 Smart OPD Queue System</p>
+        <p>Smart • Simple • Patient Friendly</p>
+    </footer>
+    <script src="app.js"></script>
+</body>
+</html>
