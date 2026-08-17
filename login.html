@@ -28,6 +28,8 @@
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
       import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-analytics.js";
+      import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+      import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
 
       const firebaseConfig = {
         apiKey: "AIzaSyDsyAcahXHAI14JcbLX6eyV7KAyWtx1Lno",
@@ -41,6 +43,20 @@
 
       const app = initializeApp(firebaseConfig);
       const analytics = getAnalytics(app);
+
+      // Expose a minimal firebase helper on window for non-module app.js
+      const auth = getAuth(app);
+      const db = getDatabase(app);
+      window.firebase = {
+        app,
+        analytics,
+        auth,
+        db,
+        signInAnonymously,
+        onAuthStateChanged,
+        ref,
+        set
+      };
     </script>
     <script src="app.js"></script>
 </body>
