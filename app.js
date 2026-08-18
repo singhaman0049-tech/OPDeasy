@@ -164,15 +164,215 @@ function setText(id, value) {
     if (element) element.textContent = value;
 }
 
+// Firebase Database Functions
+async function saveLoginToDatabase(doctorName, email) {
+    try {
+        if (!window.firebase || !window.firebase.db) {
+            console.warn('Firebase database not initialized');
+            return;
+        }
+
+        const { ref, set } = window.firebase;
+        const db = window.firebase.db;
+        const timestamp = new Date().toISOString();
+        const loginRef = ref(db, `doctors/${email.replace(/\./g, '_')}`);
+        
+        await set(loginRef, {
+            name: doctorName,
+            email: email,
+            lastLogin: timestamp,
+            createdAt: timestamp
+        });
+        
+        console.log('Doctor login saved to database');
+    } catch (error) {
+        console.error('Error saving login to database:', error);
+    }
+}
+
+async function savePatientToDatabase(patient) {
+    try {
+        if (!window.firebase || !window.firebase.db) {
+            console.warn('Firebase database not initialized');
+            return;
+        }
+
+        const { ref, set } = window.firebase;
+        const db = window.firebase.db;
+        const patientRef = ref(db, `patients/${patient.token}`);
+        
+        await set(patientRef, {
+            token: patient.token,
+            name: patient.name,
+            phone: patient.phone,
+            age: patient.age,
+            reason: patient.reason,
+            status: patient.status,
+            createdAt: patient.createdAt
+        });
+        
+        console.log('Patient data saved to database');
+    } catch (error) {
+        console.error('Error saving patient to database:', error);
+    }
+}
+
+async function handlePasswordReset(email) {
+    try {
+        if (!window.firebase || !window.firebase.sendPasswordResetEmail) {
+            showResetMessage('Firebase not initialized properly', 'error');
+            return;
+        }
+
+        const { auth, sendPasswordResetEmail } = window.firebase;
+        await sendPasswordResetEmail(auth, email);
+        showResetMessage('Password reset link sent to your email!', 'success');
+    } catch (error) {
+        if (error.code === 'auth/user-not-found') {
+            showResetMessage('No account found with this email address', 'error');
+        } else if (error.code === 'auth/invalid-email') {
+            showResetMessage('Invalid email address', 'error');
+        } else {
+            showResetMessage('Error sending reset link: ' + error.message, 'error');
+        }
+    }
+}
+
+function showResetMessage(message, type) {
+    const resetMessage = document.getElementById('resetMessage');
+    if (resetMessage) {
+        resetMessage.textContent = message;
+        resetMessage.className = `reset-message ${type}`;
+    }
+}
+
+async function handleLogin(doctorName, email, password) {
+    try {
+        if (!window.firebase || !window.firebase.signInWithEmailAndPassword) {
+            showLoginError('Firebase authentication not initialized');
+            return;
+        }
+
+        const { auth, signInWithEmailAndPassword } = window.firebase;
+        
+        // Sign in with email and password
+        await signInWithEmailAndPassword(auth, email, password);
+        
+        // Save login data to database
+        await saveLoginToDatabase(doctorName, email);
+        
+        // Store user info in session
+        sessionStorage.setItem('smart-opd-user', JSON.stringify({ 
+            name: doctorName, 
+            email: email,
+            loginTime: new Date().toISOString()
+        }));
+        
+        // Redirect to patient registration
+        window.location.href = 'patient-registration.html';
+    } catch (error) {
+        let errorMessage = 'Login failed. Please try again.';
+        
+        if (error.code === 'auth/invalid-credential') {
+            errorMessage = 'Invalid email or password';
+        } else if (error.code === 'auth/user-not-found') {
+            errorMessage = 'No account found with this email';
+        } else if (error.code === 'auth/wrong-password') {
+            errorMessage = 'Incorrect password';
+        } else if (error.code === 'auth/too-many-requests') {
+            errorMessage = 'Too many login attempts. Please try again later.';
+        }
+        
+        showLoginError(errorMessage);
+    }
+}
+
+function showLoginError(message) {
+    const errorMessage = document.getElementById('errorMessage');
+    if (errorMessage) {
+        errorMessage.textContent = message;
+        errorMessage.classList.add('show');
+        setTimeout(() => {
+            errorMessage.classList.remove('show');
+        }, 5000);
+    }
+}
+
 function setupLogin() {
     const form = document.getElementById('loginForm');
     if (!form) return;
 
     form.addEventListener('submit', event => {
         event.preventDefault();
-        const name = document.getElementById('loginName').value.trim() || 'Guest';
-        sessionStorage.setItem('smart-opd-user', JSON.stringify({ name }));
-        window.location.href = 'patient-registration.html';
+        
+        const doctorName = document.getElementById('doctorName').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const rememberMe = document.getElementById('rememberMe').checked;
+
+        if (!doctorName || !email || !password) {
+            showLoginError('Please fill in all fields');
+            return;
+        }
+
+        // Save remember me preference
+        if (rememberMe) {
+            localStorage.setItem('opdeasy-remember-email', email);
+        } else {
+            localStorage.removeItem('opdeasy-remember-email');
+        }
+
+        handleLogin(doctorName, email, password);
+    });
+
+    // Setup Forgot Password Modal
+    const modal = document.getElementById('forgotPasswordModal');
+    const forgotLink = document.getElementById('forgotPassword');
+    const closeBtn = document.querySelector('.close');
+    const resetButton = document.getElementById('resetButton');
+
+    if (forgotLink) {
+        forgotLink.addEventListener('click', event => {
+            event.preventDefault();
+            modal.classList.add('show');
+        });
+    }
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            modal.classList.remove('show');
+            document.getElementById('resetMessage').className = 'reset-message';
+            document.getElementById('resetEmail').value = '';
+        });
+    }
+
+    if (resetButton) {
+        resetButton.addEventListener('click', async () => {
+            const resetEmail = document.getElementById('resetEmail').value.trim();
+            if (!resetEmail) {
+                showResetMessage('Please enter your email address', 'error');
+                return;
+            }
+            await handlePasswordReset(resetEmail);
+        });
+    }
+
+    // Auto-fill email if remember me was checked
+    const savedEmail = localStorage.getItem('opdeasy-remember-email');
+    if (savedEmail) {
+        const emailInput = document.getElementById('email');
+        if (emailInput) {
+            emailInput.value = savedEmail;
+            const rememberCheckbox = document.getElementById('rememberMe');
+            if (rememberCheckbox) rememberCheckbox.checked = true;
+        }
+    }
+
+    // Close modal when clicking outside
+    window.addEventListener('click', event => {
+        if (event.target === modal) {
+            modal.classList.remove('show');
+        }
     });
 }
 
@@ -197,6 +397,10 @@ function setupRegistration() {
         data.patients.push(patient);
         data.nextToken += 1;
         saveData(data);
+        
+        // Save patient to Firebase database
+        savePatientToDatabase(patient);
+        
         setText('registeredToken', patient.token);
         document.getElementById('registrationNotice').classList.add('show');
         form.reset();
