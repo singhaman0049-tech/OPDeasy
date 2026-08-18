@@ -15,8 +15,18 @@
 
         <form id="loginForm">
             <div class="form-group">
-                <label for="loginName">DOCTOR's NAME</label>
-                <input id="loginName" type="text" placeholder="Enter Docter's Name" required>
+                <label for="doctorName">DOCTOR'S NAME</label>
+                <input id="doctorName" type="text" placeholder="Enter Doctor's Name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">EMAIL</label>
+                <input id="email" type="email" placeholder="Enter Your Email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">PASSWORD</label>
+                <input id="password" type="password" placeholder="Enter Your Password" required>
             </div>
 
             <button class="btn" type="submit">Enter Hospital System</button>
@@ -28,7 +38,7 @@
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
       import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-analytics.js";
-      import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+      import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
       import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
 
       const firebaseConfig = {
@@ -44,7 +54,7 @@
       const app = initializeApp(firebaseConfig);
       const analytics = getAnalytics(app);
 
-      // Expose a minimal firebase helper on window for non-module app.js
+      // Expose firebase helper on window for non-module app.js
       const auth = getAuth(app);
       const db = getDatabase(app);
       window.firebase = {
@@ -52,7 +62,7 @@
         analytics,
         auth,
         db,
-        signInAnonymously,
+        signInWithEmailAndPassword,
         onAuthStateChanged,
         ref,
         set
