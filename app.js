@@ -165,7 +165,7 @@ function setText(id, value) {
 }
 
 // Firebase Database Functions
-async function saveLoginToDatabase(doctorName, email) {
+async function saveDoctorToDatabase(doctorData) {
     try {
         if (!window.firebase || !window.firebase.db) {
             console.warn('Firebase database not initialized');
@@ -175,18 +175,61 @@ async function saveLoginToDatabase(doctorName, email) {
         const { ref, set } = window.firebase;
         const db = window.firebase.db;
         const timestamp = new Date().toISOString();
-        const loginRef = ref(db, `doctors/${email.replace(/\./g, '_')}`);
+        const emailKey = doctorData.email.replace(/\./g, '_');
+        const doctorRef = ref(db, `doctors/${emailKey}`);
         
-        await set(loginRef, {
-            name: doctorName,
-            email: email,
+        await set(doctorRef, {
+            name: doctorData.name,
+            email: doctorData.email,
+            phone: doctorData.phone,
+            specialization: doctorData.specialization,
+            licenseNumber: doctorData.licenseNumber,
+            isVerified: true,
+            registeredAt: timestamp,
             lastLogin: timestamp,
-            createdAt: timestamp
+            status: 'active'
         });
         
-        console.log('Doctor login saved to database');
+        console.log('Doctor registered and saved to database');
     } catch (error) {
-        console.error('Error saving login to database:', error);
+        console.error('Error saving doctor to database:', error);
+    }
+}
+
+async function isDoctorRegistered(email) {
+    try {
+        if (!window.firebase || !window.firebase.db) {
+            console.warn('Firebase database not initialized');
+            return false;
+        }
+
+        const { ref, get } = window.firebase;
+        const db = window.firebase.db;
+        const emailKey = email.replace(/\./g, '_');
+        const doctorRef = ref(db, `doctors/${emailKey}`);
+        
+        const snapshot = await get(doctorRef);
+        return snapshot.exists();
+    } catch (error) {
+        console.error('Error checking doctor registration:', error);
+        return false;
+    }
+}
+
+async function updateLastLogin(email) {
+    try {
+        if (!window.firebase || !window.firebase.db) {
+            return;
+        }
+
+        const { ref, set } = window.firebase;
+        const db = window.firebase.db;
+        const emailKey = email.replace(/\./g, '_');
+        const lastLoginRef = ref(db, `doctors/${emailKey}/lastLogin`);
+        
+        await set(lastLoginRef, new Date().toISOString());
+    } catch (error) {
+        console.error('Error updating last login:', error);
     }
 }
 
@@ -246,10 +289,57 @@ function showResetMessage(message, type) {
     }
 }
 
+async function handleRegistration(doctorData) {
+    try {
+        if (!window.firebase || !window.firebase.createUserWithEmailAndPassword) {
+            showLoginError('Firebase authentication not initialized');
+            return;
+        }
+
+        const { auth, createUserWithEmailAndPassword } = window.firebase;
+        
+        // Create user account in Firebase Auth
+        await createUserWithEmailAndPassword(auth, doctorData.email, doctorData.password);
+        
+        // Save doctor info to database
+        await saveDoctorToDatabase(doctorData);
+        
+        showLoginError('');
+        showRegistrationSuccess('Registration successful! Please login with your credentials.');
+        
+        // Switch back to login form after 2 seconds
+        setTimeout(() => {
+            switchToLogin();
+        }, 2000);
+        
+    } catch (error) {
+        let errorMessage = 'Registration failed. Please try again.';
+        
+        if (error.code === 'auth/email-already-in-use') {
+            errorMessage = 'This email is already registered. Please login or use a different email.';
+        } else if (error.code === 'auth/weak-password') {
+            errorMessage = 'Password is too weak. Use at least 6 characters.';
+        } else if (error.code === 'auth/invalid-email') {
+            errorMessage = 'Invalid email address';
+        } else if (error.code === 'auth/operation-not-allowed') {
+            errorMessage = 'Registration is currently disabled. Contact administrator.';
+        }
+        
+        showLoginError(errorMessage);
+    }
+}
+
 async function handleLogin(doctorName, email, password) {
     try {
         if (!window.firebase || !window.firebase.signInWithEmailAndPassword) {
             showLoginError('Firebase authentication not initialized');
+            return;
+        }
+
+        // First check if doctor is registered
+        const isRegistered = await isDoctorRegistered(email);
+        if (!isRegistered) {
+            showLoginError('Email not registered. Please create an account first.');
             return;
         }
 
@@ -258,8 +348,8 @@ async function handleLogin(doctorName, email, password) {
         // Sign in with email and password
         await signInWithEmailAndPassword(auth, email, password);
         
-        // Save login data to database
-        await saveLoginToDatabase(doctorName, email);
+        // Update last login time
+        await updateLastLogin(email);
         
         // Store user info in session
         sessionStorage.setItem('smart-opd-user', JSON.stringify({ 
@@ -276,7 +366,7 @@ async function handleLogin(doctorName, email, password) {
         if (error.code === 'auth/invalid-credential') {
             errorMessage = 'Invalid email or password';
         } else if (error.code === 'auth/user-not-found') {
-            errorMessage = 'No account found with this email';
+            errorMessage = 'Email not registered. Please create an account first.';
         } else if (error.code === 'auth/wrong-password') {
             errorMessage = 'Incorrect password';
         } else if (error.code === 'auth/too-many-requests') {
@@ -291,11 +381,44 @@ function showLoginError(message) {
     const errorMessage = document.getElementById('errorMessage');
     if (errorMessage) {
         errorMessage.textContent = message;
-        errorMessage.classList.add('show');
-        setTimeout(() => {
+        if (message) {
+            errorMessage.classList.add('show');
+        } else {
             errorMessage.classList.remove('show');
+        }
+        setTimeout(() => {
+            if (message) {
+                errorMessage.classList.remove('show');
+            }
         }, 5000);
     }
+}
+
+function showRegistrationSuccess(message) {
+    const errorMessage = document.getElementById('errorMessage');
+    if (errorMessage) {
+        errorMessage.textContent = message;
+        errorMessage.classList.add('show');
+        errorMessage.style.backgroundColor = '#dcfce7';
+        errorMessage.style.borderColor = '#86efac';
+        errorMessage.style.color = '#166534';
+    }
+}
+
+function switchToRegistration() {
+    document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('registrationForm').style.display = 'block';
+    document.querySelector('.login-footer').style.display = 'none';
+    document.getElementById('registrationFooter').style.display = 'block';
+    showLoginError('');
+}
+
+function switchToLogin() {
+    document.getElementById('loginForm').style.display = 'block';
+    document.getElementById('registrationForm').style.display = 'none';
+    document.querySelector('.login-footer').style.display = 'block';
+    document.getElementById('registrationFooter').style.display = 'none';
+    showLoginError('');
 }
 
 function setupLogin() {
@@ -324,6 +447,24 @@ function setupLogin() {
 
         handleLogin(doctorName, email, password);
     });
+
+    // Setup form switching
+    const switchToRegisterBtn = document.getElementById('switchToRegister');
+    const switchToLoginBtn = document.getElementById('switchToLogin');
+
+    if (switchToRegisterBtn) {
+        switchToRegisterBtn.addEventListener('click', event => {
+            event.preventDefault();
+            switchToRegistration();
+        });
+    }
+
+    if (switchToLoginBtn) {
+        switchToLoginBtn.addEventListener('click', event => {
+            event.preventDefault();
+            switchToLogin();
+        });
+    }
 
     // Setup Forgot Password Modal
     const modal = document.getElementById('forgotPasswordModal');
@@ -377,35 +518,87 @@ function setupLogin() {
 }
 
 function setupRegistration() {
-    const form = document.getElementById('patientForm');
-    if (!form) return;
+    const patientForm = document.getElementById('patientForm');
+    const registrationForm = document.getElementById('registrationForm');
 
-    form.addEventListener('submit', event => {
-        event.preventDefault();
+    // Patient Registration (existing)
+    if (patientForm) {
+        patientForm.addEventListener('submit', event => {
+            event.preventDefault();
 
-        const data = getData();
-        const patient = {
-            token: data.nextToken,
-            name: document.getElementById('patientName').value.trim(),
-            phone: document.getElementById('patientPhone').value.trim(),
-            age: document.getElementById('patientAge').value,
-            reason: document.getElementById('patientReason').value.trim(),
-            createdAt: new Date().toISOString(),
-            status: 'waiting'
-        };
+            const data = getData();
+            const patient = {
+                token: data.nextToken,
+                name: document.getElementById('patientName').value.trim(),
+                phone: document.getElementById('patientPhone').value.trim(),
+                age: document.getElementById('patientAge').value,
+                reason: document.getElementById('patientReason').value.trim(),
+                createdAt: new Date().toISOString(),
+                status: 'waiting'
+            };
 
-        data.patients.push(patient);
-        data.nextToken += 1;
-        saveData(data);
-        
-        // Save patient to Firebase database
-        savePatientToDatabase(patient);
-        
-        setText('registeredToken', patient.token);
-        document.getElementById('registrationNotice').classList.add('show');
-        form.reset();
-        document.getElementById('registrationNotice').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    });
+            data.patients.push(patient);
+            data.nextToken += 1;
+            saveData(data);
+            
+            // Save patient to Firebase database
+            savePatientToDatabase(patient);
+            
+            setText('registeredToken', patient.token);
+            document.getElementById('registrationNotice').classList.add('show');
+            patientForm.reset();
+            document.getElementById('registrationNotice').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+    }
+
+    // Doctor Registration (new)
+    if (registrationForm) {
+        registrationForm.addEventListener('submit', async event => {
+            event.preventDefault();
+
+            const name = document.getElementById('regDoctorName').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const phone = document.getElementById('regPhone').value.trim();
+            const specialization = document.getElementById('regSpecialization').value.trim();
+            const licenseNumber = document.getElementById('regLicenseNumber').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('regConfirmPassword').value;
+            const agreeTerms = document.getElementById('regAgreeTerms').checked;
+
+            // Validation
+            if (!name || !email || !phone || !specialization || !licenseNumber || !password || !confirmPassword) {
+                showLoginError('Please fill in all fields');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showLoginError('Passwords do not match');
+                return;
+            }
+
+            if (password.length < 6) {
+                showLoginError('Password must be at least 6 characters');
+                return;
+            }
+
+            if (!agreeTerms) {
+                showLoginError('Please agree to the terms and conditions');
+                return;
+            }
+
+            // Proceed with registration
+            const doctorData = {
+                name,
+                email,
+                phone,
+                specialization,
+                licenseNumber,
+                password
+            };
+
+            await handleRegistration(doctorData);
+        });
+    }
 }
 
 function setupDisplay() {
