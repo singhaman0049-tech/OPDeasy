@@ -13,6 +13,8 @@
             <p>Hospital Queue Management System</p>
         </div>
 
+        <div id="errorMessage" class="error-message"></div>
+
         <form id="loginForm">
             <div class="form-group">
                 <label for="doctorName">DOCTOR'S NAME</label>
@@ -29,16 +31,41 @@
                 <input id="password" type="password" placeholder="Enter Your Password" required>
             </div>
 
+            <div class="checkbox-group">
+                <input id="rememberMe" type="checkbox">
+                <label for="rememberMe">Remember me</label>
+            </div>
+
             <button class="btn" type="submit">Enter Hospital System</button>
         </form>
 
+        <div class="login-footer">
+            <a href="#" id="forgotPassword" class="forgot-password-link">Forgot Password?</a>
+        </div>
+
         <p class="login-help">For authorised hospital staff and doctors only.</p>
     </main>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotPasswordModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Reset Password</h2>
+            <p>Enter your email address and we'll send you a link to reset your password.</p>
+            <div class="form-group">
+                <label for="resetEmail">EMAIL</label>
+                <input id="resetEmail" type="email" placeholder="Enter Your Email" required>
+            </div>
+            <div id="resetMessage" class="reset-message"></div>
+            <button id="resetButton" class="btn" type="button">Send Reset Link</button>
+        </div>
+    </div>
+
     <!-- Firebase initialization -->
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
       import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-analytics.js";
-      import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+      import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
       import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
 
       const firebaseConfig = {
@@ -63,6 +90,7 @@
         auth,
         db,
         signInWithEmailAndPassword,
+        sendPasswordResetEmail,
         onAuthStateChanged,
         ref,
         set
