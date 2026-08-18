@@ -15,7 +15,8 @@
 
         <div id="errorMessage" class="error-message"></div>
 
-        <form id="loginForm">
+        <!-- Login Form (Initially Visible) -->
+        <form id="loginForm" style="display: block;">
             <div class="form-group">
                 <label for="doctorName">DOCTOR'S NAME</label>
                 <input id="doctorName" type="text" placeholder="Enter Doctor's Name" required>
@@ -41,6 +42,58 @@
 
         <div class="login-footer">
             <a href="#" id="forgotPassword" class="forgot-password-link">Forgot Password?</a>
+            <div style="margin-top: 12px; text-align: center; color: var(--muted); font-size: 14px;">
+                Don't have an account? <a href="#" id="switchToRegister" class="forgot-password-link">Register here</a>
+            </div>
+        </div>
+
+        <!-- Registration Form (Initially Hidden) -->
+        <form id="registrationForm" style="display: none;">
+            <div class="form-group">
+                <label for="regDoctorName">DOCTOR'S NAME</label>
+                <input id="regDoctorName" type="text" placeholder="Enter Full Name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="regEmail">EMAIL</label>
+                <input id="regEmail" type="email" placeholder="Enter Email Address" required>
+            </div>
+
+            <div class="form-group">
+                <label for="regPhone">PHONE NUMBER</label>
+                <input id="regPhone" type="tel" placeholder="Enter Phone Number" required>
+            </div>
+
+            <div class="form-group">
+                <label for="regSpecialization">SPECIALIZATION</label>
+                <input id="regSpecialization" type="text" placeholder="e.g., Cardiology, Neurology" required>
+            </div>
+
+            <div class="form-group">
+                <label for="regLicenseNumber">LICENSE NUMBER</label>
+                <input id="regLicenseNumber" type="text" placeholder="Enter License Number" required>
+            </div>
+
+            <div class="form-group">
+                <label for="regPassword">PASSWORD</label>
+                <input id="regPassword" type="password" placeholder="Create Password (min 6 characters)" required minlength="6">
+            </div>
+
+            <div class="form-group">
+                <label for="regConfirmPassword">CONFIRM PASSWORD</label>
+                <input id="regConfirmPassword" type="password" placeholder="Confirm Password" required minlength="6">
+            </div>
+
+            <div class="checkbox-group">
+                <input id="regAgreeTerms" type="checkbox" required>
+                <label for="regAgreeTerms">I agree to the terms and conditions</label>
+            </div>
+
+            <button class="btn" type="submit">Create Account</button>
+        </form>
+
+        <div id="registrationFooter" style="display: none; text-align: center; margin-top: 12px; color: var(--muted); font-size: 14px;">
+            Already have an account? <a href="#" id="switchToLogin" class="forgot-password-link">Login here</a>
         </div>
 
         <p class="login-help">For authorised hospital staff and doctors only.</p>
@@ -65,8 +118,8 @@
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
       import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-analytics.js";
-      import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
-      import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+      import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+      import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
 
       const firebaseConfig = {
         apiKey: "AIzaSyDsyAcahXHAI14JcbLX6eyV7KAyWtx1Lno",
@@ -90,10 +143,12 @@
         auth,
         db,
         signInWithEmailAndPassword,
+        createUserWithEmailAndPassword,
         sendPasswordResetEmail,
         onAuthStateChanged,
         ref,
-        set
+        set,
+        get
       };
     </script>
     <script src="app.js"></script>
