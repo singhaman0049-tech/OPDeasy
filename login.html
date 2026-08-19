@@ -51,12 +51,30 @@
     </main>
 
     <!-- Firebase initialization -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-analytics.js";
-    import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+ <script type="module">
+    import { initializeApp }
+        from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+
+    import { getAnalytics }
+        from "https://www.gstatic.com/firebasejs/9.22.2/firebase-analytics.js";
+
+    import {
+        getAuth,
+        signInWithEmailAndPassword,
+        sendPasswordResetEmail,
+        onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+
+    import {
+        getDatabase,
+        ref,
+        set,
+        get
+    } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+
 
     const firebaseConfig = {
+        apiKey: "YOUR_EXISTING_API_KEY",
         authDomain: "opdeasy-57f8a.firebaseapp.com",
         projectId: "opdeasy-57f8a",
         storageBucket: "opdeasy-57f8a.firebasestorage.app",
@@ -67,18 +85,25 @@
 
     const app = initializeApp(firebaseConfig);
     const analytics = getAnalytics(app);
+
     const auth = getAuth(app);
+    const db = getDatabase(app);
 
     window.firebase = {
         app,
         analytics,
         auth,
+        db,
         signInWithEmailAndPassword,
         sendPasswordResetEmail,
-        onAuthStateChanged
+        onAuthStateChanged,
+        ref,
+        set,
+        get
     };
+</script>
 
-    </script>
+<script src="app.js"></script>
  <script src="app.js"></script>
 </body>
 </html>
