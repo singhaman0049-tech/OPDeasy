@@ -261,8 +261,11 @@ async function handleLogin(doctorName, email, password) {
 
         console.log('Firebase login successful');
 
-        // Update last login, but don't block login if database update fails
-        await updateLastLogin(email);
+        
+       // Update last login time without blocking navigation
+updateLastLogin(email).catch(error => {
+    console.warn('Could not update last login:', error);
+});
 
         sessionStorage.setItem('smart-opd-user', JSON.stringify({
             name: doctorName,
