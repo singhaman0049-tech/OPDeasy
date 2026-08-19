@@ -261,8 +261,10 @@ async function handleLogin(doctorName, email, password) {
 
         console.log('Firebase login successful');
 
-        
-
+        // Update last login time
+        updateLastLogin(email).catch(error => {
+            console.warn('Could not update last login:', error);
+        });
 
         sessionStorage.setItem('smart-opd-user', JSON.stringify({
             name: doctorName,
@@ -290,7 +292,7 @@ async function handleLogin(doctorName, email, password) {
         } else if (error.code === 'auth/invalid-email') {
             errorMessage = 'Invalid email address.';
         } else if (error.code === 'auth/too-many-requests') {
-            errorMessage = 'Too many attempts. Please try again later.';
+            errorMessage = 'Too many login attempts. Please try again later.';
         }
 
         showLoginError(errorMessage);
