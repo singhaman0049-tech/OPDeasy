@@ -246,40 +246,38 @@ function showLoginError(message) {
     }
 }
 
-//async function handleLogin(doctorName, email, password) {
-    //try {
-       // if (!window.firebase || !window.firebase.signInWithEmailAndPassword) {
-         //   showLoginError('Firebase authentication not initialized');
-           // return;
-        //}
-
-        // First check if doctor is registered
-        const isRegistered = await isDoctorRegistered(email);
-        if (!isRegistered) {
-            showLoginError('Email not registered. Please create an account first.');
+async function handleLogin(doctorName, email, password) {
+    try {
+        if (!window.firebase || !window.firebase.signInWithEmailAndPassword) {
+            showLoginError('Firebase authentication not initialized');
             return;
         }
 
         const { auth, signInWithEmailAndPassword } = window.firebase;
-        
+
         // Sign in with email and password
         await signInWithEmailAndPassword(auth, email, password);
-        
+
         // Update last login time
         await updateLastLogin(email);
-        
+
         // Store user info in session
-        sessionStorage.setItem('smart-opd-user', JSON.stringify({ 
-            name: doctorName, 
+        sessionStorage.setItem('smart-opd-user', JSON.stringify({
+            name: doctorName,
             email: email,
             loginTime: new Date().toISOString()
         }));
-        
+
         // Redirect to patient registration
         window.location.href = 'patient-registration.html';
+
     } catch (error) {
+        console.error('LOGIN ERROR:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+
         let errorMessage = 'Login failed. Please try again.';
-        
+
         if (error.code === 'auth/invalid-credential') {
             errorMessage = 'Invalid email or password';
         } else if (error.code === 'auth/user-not-found') {
@@ -289,11 +287,10 @@ function showLoginError(message) {
         } else if (error.code === 'auth/too-many-requests') {
             errorMessage = 'Too many login attempts. Please try again later.';
         }
-        
+
         showLoginError(errorMessage);
     }
 }
-
 function setupLogin() {
     const form = document.getElementById('loginForm');
     if (!form) return;
