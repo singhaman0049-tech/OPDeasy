@@ -255,20 +255,23 @@ async function handleLogin(doctorName, email, password) {
 
         const { auth, signInWithEmailAndPassword } = window.firebase;
 
-        // Sign in with email and password
+        console.log('Attempting Firebase login:', email);
+
         await signInWithEmailAndPassword(auth, email, password);
 
-        // Update last login time
+        console.log('Firebase login successful');
+
+        // Update last login, but don't block login if database update fails
         await updateLastLogin(email);
 
-        // Store user info in session
         sessionStorage.setItem('smart-opd-user', JSON.stringify({
             name: doctorName,
             email: email,
             loginTime: new Date().toISOString()
         }));
 
-        // Redirect to patient registration
+        console.log('Redirecting to patient registration...');
+
         window.location.href = 'patient-registration.html';
 
     } catch (error) {
@@ -279,25 +282,37 @@ async function handleLogin(doctorName, email, password) {
         let errorMessage = 'Login failed. Please try again.';
 
         if (error.code === 'auth/invalid-credential') {
-            errorMessage = 'Invalid email or password';
+            errorMessage = 'Invalid email or password.';
         } else if (error.code === 'auth/user-not-found') {
-            errorMessage = 'Email not registered. Please create an account first.';
+            errorMessage = 'Email is not registered.';
         } else if (error.code === 'auth/wrong-password') {
-            errorMessage = 'Incorrect password';
+            errorMessage = 'Incorrect password.';
+        } else if (error.code === 'auth/invalid-email') {
+            errorMessage = 'Invalid email address.';
         } else if (error.code === 'auth/too-many-requests') {
-            errorMessage = 'Too many login attempts. Please try again later.';
+            errorMessage = 'Too many attempts. Please try again later.';
         }
 
         showLoginError(errorMessage);
     }
 }
+
+
 function setupLogin() {
     const form = document.getElementById('loginForm');
-    if (!form) return;
 
-    form.addEventListener('submit', event => {
+    if (!form) {
+        console.log('Login form not found');
+        return;
+    }
+
+    console.log('Login form connected');
+
+    form.addEventListener('submit', async (event) => {
         event.preventDefault();
-        
+
+        console.log('Login button clicked');
+
         const doctorName = document.getElementById('doctorName').value.trim();
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
@@ -308,24 +323,28 @@ function setupLogin() {
             return;
         }
 
-        // Save remember me preference
         if (rememberMe) {
             localStorage.setItem('opdeasy-remember-email', email);
         } else {
             localStorage.removeItem('opdeasy-remember-email');
         }
 
-        handleLogin(doctorName, email, password);
+        await handleLogin(doctorName, email, password);
     });
 
-    // Auto-fill email if remember me was checked
     const savedEmail = localStorage.getItem('opdeasy-remember-email');
+
     if (savedEmail) {
         const emailInput = document.getElementById('email');
+
         if (emailInput) {
             emailInput.value = savedEmail;
+
             const rememberCheckbox = document.getElementById('rememberMe');
-            if (rememberCheckbox) rememberCheckbox.checked = true;
+
+            if (rememberCheckbox) {
+                rememberCheckbox.checked = true;
+            }
         }
     }
 }
