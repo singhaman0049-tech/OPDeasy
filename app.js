@@ -246,12 +246,12 @@ function showLoginError(message) {
     }
 }
 
-async function handleLogin(doctorName, email, password) {
-    try {
-        if (!window.firebase || !window.firebase.signInWithEmailAndPassword) {
-            showLoginError('Firebase authentication not initialized');
-            return;
-        }
+//async function handleLogin(doctorName, email, password) {
+    //try {
+       // if (!window.firebase || !window.firebase.signInWithEmailAndPassword) {
+         //   showLoginError('Firebase authentication not initialized');
+           // return;
+        //}
 
         // First check if doctor is registered
         const isRegistered = await isDoctorRegistered(email);
