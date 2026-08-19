@@ -51,35 +51,33 @@
     </main>
 
     <!-- Firebase initialization -->
-    <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-      import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-analytics.js";
-      import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
-      import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-analytics.js";
+    import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
 
     const firebaseConfig = {
-    authDomain: "opdeasy-57f8a.firebaseapp.com",
-    projectId: "opdeasy-57f8a",
-    //databaseURL: "https://opdeasy-57f8a-default-rtdb.firebaseio.com/",
-    storageBucket: "opdeasy-57f8a.firebasestorage.app",
-    messagingSenderId: "817688179546",
-    appId: "1:817688179546:web:0c67aa31606db95a983963",
-    measurementId: "G-RCYDBC9JGD"
-};
-      const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-      window.firebase = {
+        authDomain: "opdeasy-57f8a.firebaseapp.com",
+        projectId: "opdeasy-57f8a",
+        storageBucket: "opdeasy-57f8a.firebasestorage.app",
+        messagingSenderId: "817688179546",
+        appId: "1:817688179546:web:0c67aa31606db95a983963",
+        measurementId: "G-RCYDBC9JGD"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const auth = getAuth(app);
+
+    window.firebase = {
         app,
         analytics,
         auth,
-        
         signInWithEmailAndPassword,
         sendPasswordResetEmail,
-        onAuthStateChanged,
-        
-        
-    
-      };
+        onAuthStateChanged
+    };
+
     </script>
  <script src="app.js"></script>
 </body>
