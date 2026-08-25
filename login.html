@@ -50,59 +50,7 @@
         <p class="login-help">For authorised hospital staff and doctors only.</p>
     </main>
 
-    <!-- Firebase initialization -->
- <script type="module">
-    import { initializeApp }
-        from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-
-    import { getAnalytics }
-        from "https://www.gstatic.com/firebasejs/9.22.2/firebase-analytics.js";
-
-    import {
-        getAuth,
-        signInWithEmailAndPassword,
-        sendPasswordResetEmail,
-        onAuthStateChanged
-    } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
-
-    import {
-        getDatabase,
-        ref,
-        set,
-        get
-    } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
-
-
-    const firebaseConfig = {
-        apiKey: "AIzaSyDsyAcahXHAI14JcbLX6eyV7KAyWtx1Lno",
-        authDomain: "opdeasy-57f8a.firebaseapp.com",
-        projectId: "opdeasy-57f8a",
-        storageBucket: "opdeasy-57f8a.firebasestorage.app",
-        messagingSenderId: "817688179546",
-        appId: "1:817688179546:web:0c67aa31606db95a983963",
-        measurementId: "G-RCYDBC9JGD"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
-
-    const auth = getAuth(app);
-    const db = getDatabase(app);
-
-    window.firebase = {
-        app,
-        analytics,
-        auth,
-        db,
-        signInWithEmailAndPassword,
-        sendPasswordResetEmail,
-        onAuthStateChanged,
-        ref,
-        set,
-        get
-    };
-</script>
-
+    
 <script type="module" src="firebase-client.js"></script>
 <script type="module" src="app.js"></script>
 </body>
