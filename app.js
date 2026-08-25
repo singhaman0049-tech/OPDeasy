@@ -69,6 +69,115 @@ function getData() {
 function saveData(data) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
+// ============================================================
+// FIREBASE OPD DATA
+// ============================================================
+
+async function getFirebaseOpdData() {
+    try {
+        if (!window.firebase || !window.firebase.db) {
+            console.warn('Firebase database not initialized');
+            return null;
+        }
+
+        const { auth, ref, get } = window.firebase;
+        const db = window.firebase.db;
+
+        const user = auth.currentUser;
+
+        if (!user) {
+            console.warn('No authenticated Firebase user');
+            return null;
+        }
+
+        const opdRef = ref(db, `opdData/${user.uid}`);
+        const snapshot = await get(opdRef);
+
+        if (!snapshot.exists()) {
+            return null;
+        }
+
+        return snapshot.val();
+
+    } catch (error) {
+        console.error('Error loading OPD data from Firebase:', error);
+        return null;
+    }
+}
+
+
+async function saveFirebaseOpdData(data) {
+    try {
+        if (!window.firebase || !window.firebase.db) {
+            console.warn('Firebase database not initialized');
+            return false;
+        }
+
+        const { auth, ref, set } = window.firebase;
+        const db = window.firebase.db;
+
+        const user = auth.currentUser;
+
+        if (!user) {
+            console.warn('No authenticated Firebase user');
+            return false;
+        }
+
+        const opdRef = ref(db, `opdData/${user.uid}`);
+
+        await set(opdRef, data);
+
+        console.log('OPD data saved to Firebase');
+
+        return true;
+
+    } catch (error) {
+        console.error('Error saving OPD data to Firebase:', error);
+        return false;
+    }
+} 
+function listenToFirebaseOpdData() {
+    try {
+        if (!window.firebase || !window.firebase.db) {
+            console.warn('Firebase database not initialized');
+            return;
+        }
+
+        const { auth, ref, onValue } = window.firebase;
+        const db = window.firebase.db;
+
+        const user = auth.currentUser;
+
+        if (!user) {
+            console.warn('No authenticated user');
+            return;
+        }
+
+        const opdRef = ref(db, `opdData/${user.uid}`);
+
+        onValue(opdRef, snapshot => {
+            const data = snapshot.exists()
+                ? snapshot.val()
+                : createFreshDayData();
+
+            console.log('Firebase OPD data updated');
+
+            renderStats(data);
+            renderLivePatientList(data);
+
+            if (document.getElementById('doctorHandled')) {
+                renderDoctorDashboard(data);
+            }
+        });
+
+    } catch (error) {
+        console.error(
+            'Firebase realtime listener error:',
+            error
+        );
+    }
+}
+
 
 function getActivePatients(data = getData()) {
     return data.patients.filter(patient => patient.status !== 'completed');
@@ -365,34 +474,69 @@ function setupRegistration() {
     const form = document.getElementById('patientForm');
     if (!form) return;
 
-    form.addEventListener('submit', event => {
+    form.addEventListener('submit', async event => {
         event.preventDefault();
 
-        const data = getData();
-        const patient = {
-            token: data.nextToken,
-            name: document.getElementById('patientName').value.trim(),
-            phone: document.getElementById('patientPhone').value.trim(),
-            age: document.getElementById('patientAge').value,
-            reason: document.getElementById('patientReason').value.trim(),
-            createdAt: new Date().toISOString(),
-            status: 'waiting'
-        };
+        const submitButton = form.querySelector('button[type="submit"]');
 
-        data.patients.push(patient);
-        data.nextToken += 1;
-        saveData(data);
-        
-        // Save patient to Firebase database
-        savePatientToDatabase(patient);
-        
-        setText('registeredToken', patient.token);
-        document.getElementById('registrationNotice').classList.add('show');
-        form.reset();
-        document.getElementById('registrationNotice').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        if (submitButton) {
+            submitButton.disabled = true;
+        }
+
+        try {
+            let data = await getFirebaseOpdData();
+
+            if (!data) {
+                data = createFreshDayData();
+            }
+
+            const patient = {
+                token: data.nextToken,
+                name: document.getElementById('patientName').value.trim(),
+                phone: document.getElementById('patientPhone').value.trim(),
+                age: document.getElementById('patientAge').value,
+                reason: document.getElementById('patientReason').value.trim(),
+                createdAt: new Date().toISOString(),
+                status: 'waiting'
+            };
+
+            data.patients.push(patient);
+            data.nextToken += 1;
+
+            await saveFirebaseOpdData(data);
+
+            // Also save individual patient record
+            await savePatientToDatabase(patient);
+
+            setText('registeredToken', patient.token);
+
+            document
+                .getElementById('registrationNotice')
+                .classList.add('show');
+
+            form.reset();
+
+            document
+                .getElementById('registrationNotice')
+                .scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'nearest'
+                });
+
+            // Refresh UI
+            renderStats(data);
+            renderLivePatientList();
+
+        } catch (error) {
+            console.error('Patient registration failed:', error);
+            alert('Could not register patient. Please try again.');
+        } finally {
+            if (submitButton) {
+                submitButton.disabled = false;
+            }
+        }
     });
 }
-
 function setupDisplay() {
     if (!document.getElementById('displayRegistered')) return;
 
@@ -425,79 +569,134 @@ function setupDoctorDashboard() {
     renderDoctorDashboard();
 }
 
-function serveNextPatient() {
-    const data = getData();
+async function serveNextPatient() {
+    const data = await getFirebaseOpdData();
+
+    if (!data) return;
+
     const current = getCurrentPatient(data);
 
     if (current) {
-        const consultationSeconds = (Number(current.accumulatedSeconds) || 0) + getElapsedSeconds(current);
+        const consultationSeconds =
+            (Number(current.accumulatedSeconds) || 0) +
+            getElapsedSeconds(current);
+
         current.status = 'completed';
         current.completedAt = new Date().toISOString();
         current.consultationSeconds = consultationSeconds;
-        data.totalConsultationSeconds = (Number(data.totalConsultationSeconds) || 0) + consultationSeconds;
+
+        data.totalConsultationSeconds =
+            (Number(data.totalConsultationSeconds) || 0) +
+            consultationSeconds;
     }
 
     const next = getWaitingPatients(data)[0];
+
     if (next) {
         next.status = 'consulting';
         next.startedAt = new Date().toISOString();
     }
 
-    saveData(data);
-    renderDoctorDashboard();
-}
+    await saveFirebaseOpdData(data);
 
-function skipCurrentPatient() {
-    const data = getData();
-    const currentIndex = data.patients.findIndex(patient => patient.status === 'consulting');
+    renderDoctorDashboard(data);
+}
+async function skipCurrentPatient() {
+    const data = await getFirebaseOpdData();
+
+    if (!data) return;
+
+    const currentIndex = data.patients.findIndex(
+        patient => patient.status === 'consulting'
+    );
 
     if (currentIndex === -1) return;
 
     const [current] = data.patients.splice(currentIndex, 1);
-    current.accumulatedSeconds = (Number(current.accumulatedSeconds) || 0) + getElapsedSeconds(current);
+
+    current.accumulatedSeconds =
+        (Number(current.accumulatedSeconds) || 0) +
+        getElapsedSeconds(current);
+
     delete current.startedAt;
+
     current.status = 'waiting';
     current.skipped = true;
+
     data.patients.push(current);
 
     const next = getWaitingPatients(data)[0];
+
     if (next) {
         next.status = 'consulting';
         next.startedAt = new Date().toISOString();
     }
 
-    saveData(data);
-    renderDoctorDashboard();
-}
+    await saveFirebaseOpdData(data);
 
-function renderDoctorDashboard() {
-    const data = getData();
+    renderDoctorDashboard(data);
+}
+async function renderDoctorDashboard(firebaseData = null) {
+    const data = firebaseData || await getFirebaseOpdData();
+
+    if (!data) return;
+
     const current = getCurrentPatient(data);
     const table = document.getElementById('doctorQueueTable');
 
     renderStats(data);
-    setText('currentToken', current ? current.token : '--');
-    setText('currentName', current ? current.name : 'No patient is being consulted');
-    setText('currentAge', current ? `${current.age || '--'} years` : '--');
+
+    setText(
+        'currentToken',
+        current ? current.token : '--'
+    );
+
+    setText(
+        'currentName',
+        current
+            ? current.name
+            : 'No patient is being consulted'
+    );
+
+    setText(
+        'currentAge',
+        current
+            ? `${current.age || '--'} years`
+            : '--'
+    );
 
     document.getElementById('skipBtn').disabled = !current;
-    document.getElementById('skipBtn').style.opacity = current ? '1' : '.55';
 
-    const queue = data.patients.filter(patient => patient.status !== 'completed');
+    document.getElementById('skipBtn').style.opacity =
+        current ? '1' : '.55';
+
+    const queue = data.patients.filter(
+        patient => patient.status !== 'completed'
+    );
+
     table.innerHTML = queue.length
         ? queue.map(patient => `<tr>
             <td>${patient.token}</td>
             <td>${escapeHtml(patient.name)}</td>
             <td>${patient.age || '--'}</td>
             <td>${formatTime(patient.createdAt)}</td>
-            <td><span class="status ${patient.status}">${formatStatus(patient.status)}</span></td>
-            <td>${patient.status === 'consulting' ? 'Now' : `${getPosition(patient, data)} in queue`}</td>
+            <td>
+                <span class="status ${patient.status}">
+                    ${formatStatus(patient.status)}
+                </span>
+            </td>
+            <td>
+                ${
+                    patient.status === 'consulting'
+                        ? 'Now'
+                        : `${getPosition(patient, data)} in queue`
+                }
+            </td>
         </tr>`).join('')
         : '<tr><td class="empty-row" colspan="6">No patients are waiting for consultation.</td></tr>';
 
     renderHistory(data);
 }
-
 function renderHistory(data) {
     const table = document.getElementById('historyTable');
     if (!table) return;
@@ -543,12 +742,37 @@ function applyLoggedInUser() {
     if (user && target) target.textContent = user.name;
 }
 
-function refreshPage() {
-    renderStats();
-    renderLivePatientList();
-    if (document.getElementById('doctorHandled')) renderDoctorDashboard();
-}
+async function renderLivePatientList(firebaseData = null) {
+    const table = document.getElementById('livePatientList');
 
+    if (!table) return;
+
+    const data = firebaseData || await getFirebaseOpdData();
+
+    if (!data) return;
+
+    const activePatients =
+        getActivePatients(data).slice(0, 10);
+
+    table.innerHTML = activePatients.length
+        ? activePatients.map(patient => `<tr>
+            <td>${patient.token}</td>
+            <td>${escapeHtml(patient.name)}</td>
+            <td>
+                ${
+                    patient.status === 'consulting'
+                        ? 'Now serving'
+                        : getPosition(patient, data)
+                }
+            </td>
+            <td>
+                <span class="status ${patient.status}">
+                    ${formatStatus(patient.status)}
+                </span>
+            </td>
+        </tr>`).join('')
+        : '<tr><td class="empty-row" colspan="4">No patients have registered yet.</td></tr>';
+}
 document.addEventListener('DOMContentLoaded', () => {
     applyLoggedInUser();
     setupLogin();
