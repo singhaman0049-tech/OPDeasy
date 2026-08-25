@@ -763,6 +763,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupRegistration();
     setupDisplay();
     setupDoctorDashboard();
+    listenToFirebaseOpdData();
     window.addEventListener('storage', refreshPage);
     setInterval(refreshPage, 1000);
 });
