@@ -544,22 +544,6 @@ function setupDisplay() {
     renderLivePatientList();
 }
 
-function renderLivePatientList() {
-    const table = document.getElementById('livePatientList');
-    if (!table) return;
-
-    const data = getData();
-    const activePatients = getActivePatients(data).slice(0, 10);
-
-    table.innerHTML = activePatients.length
-        ? activePatients.map(patient => `<tr>
-            <td>${patient.token}</td>
-            <td>${escapeHtml(patient.name)}</td>
-            <td>${patient.status === 'consulting' ? 'Now serving' : getPosition(patient, data)}</td>
-            <td><span class="status ${patient.status}">${formatStatus(patient.status)}</span></td>
-        </tr>`).join('')
-        : '<tr><td class="empty-row" colspan="4">No patients have registered yet.</td></tr>';
-}
 
 function setupDoctorDashboard() {
     if (!document.getElementById('doctorHandled')) return;
