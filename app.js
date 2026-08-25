@@ -185,23 +185,30 @@ async function isDoctorRegistered(email) {
     }
 }
 
-async function updateLastLogin(email) {
+async function updateLastLogin() {
     try {
         if (!window.firebase || !window.firebase.db) {
             return;
         }
 
-        const { ref, set } = window.firebase;
+        const { auth, ref, set } = window.firebase;
         const db = window.firebase.db;
-        const emailKey = email.replace(/\./g, '_');
-        const lastLoginRef = ref(db, `doctors/${emailKey}/lastLogin`);
-        
+
+        const user = auth.currentUser;
+
+        if (!user) return;
+
+        const lastLoginRef = ref(
+            db,
+            `doctors/${user.uid}/lastLogin`
+        );
+
         await set(lastLoginRef, new Date().toISOString());
+
     } catch (error) {
         console.error('Error updating last login:', error);
     }
 }
-
 async function savePatientToDatabase(patient) {
     try {
         if (!window.firebase || !window.firebase.db) {
@@ -209,26 +216,29 @@ async function savePatientToDatabase(patient) {
             return;
         }
 
-        const { ref, set } = window.firebase;
+        const { auth, ref, set } = window.firebase;
         const db = window.firebase.db;
-        const patientRef = ref(db, `patients/${patient.token}`);
-        
-        await set(patientRef, {
-            token: patient.token,
-            name: patient.name,
-            phone: patient.phone,
-            age: patient.age,
-            reason: patient.reason,
-            status: patient.status,
-            createdAt: patient.createdAt
-        });
-        
-        console.log('Patient data saved to database');
+
+        const user = auth.currentUser;
+
+        if (!user) {
+            console.error('No authenticated user');
+            return;
+        }
+
+        const patientRef = ref(
+            db,
+            `opdData/${user.uid}/patients/${patient.token}`
+        );
+
+        await set(patientRef, patient);
+
+        console.log('Patient saved to Firebase');
+
     } catch (error) {
-        console.error('Error saving patient to database:', error);
+        console.error('Error saving patient:', error);
     }
 }
-
 function showLoginError(message) {
     const errorMessage = document.getElementById('errorMessage');
     if (errorMessage) {
@@ -262,7 +272,7 @@ async function handleLogin(doctorName, email, password) {
         console.log('Firebase login successful');
 
         // Update last login time
-        updateLastLogin(email).catch(error => {
+       updateLastLogin().catch(error => {
             console.warn('Could not update last login:', error);
         });
 
