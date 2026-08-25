@@ -29,15 +29,23 @@ async function saveDoctorToDatabase(doctorData) {
     try {
         if (!window.firebase || !window.firebase.db) {
             console.warn('Firebase database not initialized');
-            return;
+            return false;
         }
 
-        const { ref, set } = window.firebase;
+        const { auth, ref, set } = window.firebase;
         const db = window.firebase.db;
+
+        const user = auth.currentUser;
+
+        if (!user) {
+            console.error('No authenticated Firebase user found');
+            return false;
+        }
+
         const timestamp = new Date().toISOString();
-        const emailKey = doctorData.email.replace(/\./g, '_');
-        const doctorRef = ref(db, `doctors/${emailKey}`);
-        
+
+        const doctorRef = ref(db, `doctors/${user.uid}`);
+
         await set(doctorRef, {
             name: doctorData.name,
             email: doctorData.email,
@@ -49,15 +57,16 @@ async function saveDoctorToDatabase(doctorData) {
             lastLogin: timestamp,
             status: 'active'
         });
-        
-        console.log('Doctor registered and saved to database');
+
+        console.log('Doctor saved to Firebase:', user.uid);
+
         return true;
+
     } catch (error) {
         console.error('Error saving doctor to database:', error);
         return false;
     }
 }
-
 async function handleDoctorRegistration(event) {
     event.preventDefault();
 
