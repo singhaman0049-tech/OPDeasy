@@ -763,7 +763,24 @@ document.addEventListener('DOMContentLoaded', () => {
     setupRegistration();
     setupDisplay();
     setupDoctorDashboard();
-    listenToFirebaseOpdData();
+
+    // Start Firebase real-time updates
+    if (window.firebase && window.firebase.auth && window.firebase.onAuthStateChanged) {
+        window.firebase.onAuthStateChanged(
+            window.firebase.auth,
+            user => {
+                if (user) {
+                    console.log('Firebase user detected:', user.uid);
+
+                    listenToFirebaseOpdData();
+
+                    renderDoctorDashboard();
+                    renderLivePatientList();
+                }
+            }
+        );
+    }
+
     window.addEventListener('storage', refreshPage);
     setInterval(refreshPage, 1000);
 });
