@@ -318,36 +318,36 @@ async function updateLastLogin() {
         console.error('Error updating last login:', error);
     }
 }
-// async function savePatientToDatabase(patient) {
-//     try {
-//         if (!window.firebase || !window.firebase.db) {
-//             console.warn('Firebase database not initialized');
-//             return;
-//         }
+async function savePatientToDatabase(patient) {
+    try {
+        if (!window.firebase || !window.firebase.db) {
+            console.warn('Firebase database not initialized');
+            return;
+        }
 
-//         const { auth, ref, set } = window.firebase;
-//         const db = window.firebase.db;
+        const { auth, ref, set } = window.firebase;
+        const db = window.firebase.db;
 
-//         const user = auth.currentUser;
+        const user = auth.currentUser;
 
-//         if (!user) {
-//             console.error('No authenticated user');
-//             return;
-//         }
+        if (!user) {
+            console.error('No authenticated user');
+            return;
+        }
 
-//         const patientRef = ref(
-//             db,
-//             `opdData/${user.uid}/patients/${patient.token}`
-//         );
+        const patientRef = ref(
+            db,
+            `opdData/${user.uid}/patients/${patient.token}`
+        );
 
-//         await set(patientRef, patient);
+        await set(patientRef, patient);
 
-//         console.log('Patient saved to Firebase');
+        console.log('Patient saved to Firebase');
 
-//     } catch (error) {
-//         console.error('Error saving patient:', error);
-//     }
-// }
+    } catch (error) {
+        console.error('Error saving patient:', error);
+    }
+}
 function showLoginError(message) {
     const errorMessage = document.getElementById('errorMessage');
     if (errorMessage) {
