@@ -171,3 +171,14 @@ document.addEventListener('DOMContentLoaded', () => {
         registrationForm.addEventListener('submit', handleDoctorRegistration);
     }
 });
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+        const form = document.getElementById('doctorRegistrationForm');
+
+        if (form && document.activeElement.type !== 'checkbox') {
+            event.preventDefault();
+            form.requestSubmit();
+        }
+    }
+});
+
