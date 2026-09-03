@@ -98,6 +98,13 @@ async function getFirebaseOpdData() {
         }
 
         return snapshot.val();
+        const data = snapshot.val();
+
+if (!Array.isArray(data.patients)) {
+    data.patients = Object.values(data.patients || {});
+}
+
+return data;
 
     } catch (error) {
         console.error('Error loading OPD data from Firebase:', error);
@@ -320,32 +327,31 @@ async function updateLastLogin() {
 }
 async function savePatientToDatabase(patient) {
     try {
-        if (!window.firebase || !window.firebase.db) {
-            console.warn('Firebase database not initialized');
-            return;
+        let data = await getFirebaseOpdData();
+
+        if (!data) {
+            data = createFreshDayData();
         }
 
-        const { auth, ref, set } = window.firebase;
-        const db = window.firebase.db;
-
-        const user = auth.currentUser;
-
-        if (!user) {
-            console.error('No authenticated user');
-            return;
+        if (!Array.isArray(data.patients)) {
+            data.patients = Object.values(data.patients || {});
         }
 
-        const patientRef = ref(
-            db,
-            `opdData/${user.uid}/patients/${patient.token}`
-        );
+        data.patients.push(patient);
 
-        await set(patientRef, patient);
+        const saved = await saveFirebaseOpdData(data);
+
+        if (!saved) {
+            throw new Error('Failed to save patient to Firebase');
+        }
 
         console.log('Patient saved to Firebase');
 
+        return true;
+
     } catch (error) {
         console.error('Error saving patient:', error);
+        return false;
     }
 }
 function showLoginError(message) {
@@ -499,9 +505,19 @@ function setupRegistration() {
                 createdAt: new Date().toISOString(),
                 status: 'waiting'
             };
+            if (!Array.isArray(data.patients)) {
+    data.patients = Object.values(data.patients || {});
+}
 
-            data.patients.push(patient);
-            data.nextToken += 1;
+data.patients.push(patient);
+data.nextToken = Number(data.nextToken) || 101;
+data.nextToken += 1;
+
+const saved = await saveFirebaseOpdData(data);
+
+if (!saved) {
+    throw new Error('Failed to save patient to Firebase');
+}
 
             await saveFirebaseOpdData(data);
 
