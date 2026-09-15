@@ -565,6 +565,23 @@ function setupDoctorDashboard() {
     document.getElementById('nextBtn').addEventListener('click', serveNextPatient);
     document.getElementById('skipBtn').addEventListener('click', skipCurrentPatient);
     renderDoctorDashboard();
+
+    // Start real-time update interval for average time
+    startRealtimeAverageUpdate();
+}
+
+// Real-time update for average consultation time
+async function startRealtimeAverageUpdate() {
+    setInterval(async () => {
+        const data = await getFirebaseOpdData();
+        if (data && document.getElementById('doctorAverage')) {
+            const consultation = getConsultationSummary(data);
+            setText('doctorAverage', formatDuration(consultation.averageSeconds));
+            setText('doctorTotalTime', formatDuration(consultation.totalSeconds));
+            setText('displayAverage', formatDuration(consultation.averageSeconds));
+            setText('displayAverageStat', formatDuration(consultation.averageSeconds));
+        }
+    }, 1000); // Update every second
 }
 
 async function serveNextPatient() {
