@@ -73,7 +73,9 @@
             </div>
             <div class="action-buttons">
                 <button id="nextBtn" class="btn next" type="button">NEXT Patient</button>
+                <button id="pauseBtn" class="btn pause" type="button">PAUSE</button>
                 <button id="skipBtn" class="btn skip" type="button">SKIP Patient</button>
+                <button id="endBtn" class="btn end" type="button">END CONSULTATION</button>
             </div>
         </section>
 
@@ -148,6 +150,18 @@
                 </table>
             </div>
         </section>
+
+        <!-- End Consultation Modal -->
+        <div id="endConsultationModal" class="modal">
+            <div class="modal-content">
+                <h2>End Consultation for Today?</h2>
+                <p>This will close the OPD and mark all remaining patients as not attended. This action cannot be undone.</p>
+                <div class="modal-buttons">
+                    <button id="confirmEndBtn" class="btn end" type="button">YES, End Consultation</button>
+                    <button id="cancelEndBtn" class="btn secondary" type="button">Cancel</button>
+                </div>
+            </div>
+        </div>
     </main>
 
     <footer class="footer">
