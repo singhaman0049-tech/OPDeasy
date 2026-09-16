@@ -214,9 +214,11 @@ function getConsultationSummary(data = getData()) {
         ? (Number(current.accumulatedSeconds) || 0) + getElapsedSeconds(current)
         : 0;
     const totalSeconds = (Number(data.totalConsultationSeconds) || 0) + pausedTime + currentTime;
-    const averageSeconds = completed || current ? (
-        (Number(data.totalConsultationSeconds) || 0) + currentTime
-    ) / (completed + (current ? 1 : 0)) : 0;
+    
+    // Fixed average calculation: only count completed and current patients
+    const totalCompletedTime = (Number(data.totalConsultationSeconds) || 0) + currentTime;
+    const patientCountForAverage = completed + (current ? 1 : 0);
+    const averageSeconds = patientCountForAverage > 0 ? totalCompletedTime / patientCountForAverage : 0;
 
     return { totalSeconds, averageSeconds };
 }
@@ -522,7 +524,7 @@ if (!saved) {
             await saveFirebaseOpdData(data);
 
 
-            setText('registeredToken', patient.token);
+             setText('registeredToken', patient.token);
 
             document
                 .getElementById('registrationNotice')
