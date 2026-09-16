@@ -97,14 +97,13 @@ async function getFirebaseOpdData() {
             return null;
         }
 
-        return snapshot.val();
         const data = snapshot.val();
 
-if (!Array.isArray(data.patients)) {
-    data.patients = Object.values(data.patients || {});
-}
+        if (!Array.isArray(data.patients)) {
+            data.patients = Object.values(data.patients || {});
+        }
 
-return data;
+        return data;
 
     } catch (error) {
         console.error('Error loading OPD data from Firebase:', error);
@@ -142,7 +141,8 @@ async function saveFirebaseOpdData(data) {
         console.error('Error saving OPD data to Firebase:', error);
         return false;
     }
-} 
+}
+
 function listenToFirebaseOpdData() {
     try {
         if (!window.firebase || !window.firebase.db) {
@@ -223,11 +223,17 @@ function getConsultationSummary(data = getData()) {
     return { totalSeconds, averageSeconds };
 }
 
+// Fixed formatDuration to show hours, minutes, and seconds
 function formatDuration(seconds) {
     const totalSeconds = Math.max(0, Math.floor(seconds));
-    const minutes = Math.floor(totalSeconds / 60);
-    const remainingSeconds = totalSeconds % 60;
-    return `${minutes}m ${remainingSeconds}s`;
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
+    
+    if (hours > 0) {
+        return `${hours}h ${minutes}m ${secs}s`;
+    }
+    return `${minutes}m ${secs}s`;
 }
 
 function getPosition(patient, data = getData()) {
@@ -327,6 +333,7 @@ async function updateLastLogin() {
         console.error('Error updating last login:', error);
     }
 }
+
 async function savePatientToDatabase(patient) {
     try {
         let data = await getFirebaseOpdData();
@@ -356,6 +363,7 @@ async function savePatientToDatabase(patient) {
         return false;
     }
 }
+
 function showLoginError(message) {
     const errorMessage = document.getElementById('errorMessage');
     if (errorMessage) {
@@ -389,7 +397,7 @@ async function handleLogin(doctorName, email, password) {
         console.log('Firebase login successful');
 
         // Update last login time
-       updateLastLogin().catch(error => {
+        updateLastLogin().catch(error => {
             console.warn('Could not update last login:', error);
         });
 
@@ -508,23 +516,22 @@ function setupRegistration() {
                 status: 'waiting'
             };
             if (!Array.isArray(data.patients)) {
-    data.patients = Object.values(data.patients || {});
-}
+                data.patients = Object.values(data.patients || {});
+            }
 
-data.patients.push(patient);
-data.nextToken = Number(data.nextToken) || 101;
-data.nextToken += 1;
+            data.patients.push(patient);
+            data.nextToken = Number(data.nextToken) || 101;
+            data.nextToken += 1;
 
-const saved = await saveFirebaseOpdData(data);
+            const saved = await saveFirebaseOpdData(data);
 
-if (!saved) {
-    throw new Error('Failed to save patient to Firebase');
-}
+            if (!saved) {
+                throw new Error('Failed to save patient to Firebase');
+            }
 
             await saveFirebaseOpdData(data);
 
-
-             setText('registeredToken', patient.token);
+            setText('registeredToken', patient.token);
 
             document
                 .getElementById('registrationNotice')
@@ -553,6 +560,7 @@ if (!saved) {
         }
     });
 }
+
 function setupDisplay() {
     if (!document.getElementById('displayRegistered')) return;
 
@@ -566,6 +574,29 @@ function setupDoctorDashboard() {
 
     document.getElementById('nextBtn').addEventListener('click', serveNextPatient);
     document.getElementById('skipBtn').addEventListener('click', skipCurrentPatient);
+    
+    // Setup pause button functionality
+    const pauseBtn = document.getElementById('pauseBtn');
+    if (pauseBtn) {
+        pauseBtn.addEventListener('click', pauseConsultation);
+    }
+
+    // Setup end consultation button and modal
+    const endBtn = document.getElementById('endBtn');
+    if (endBtn) {
+        endBtn.addEventListener('click', showEndConsultationModal);
+    }
+
+    const confirmEndBtn = document.getElementById('confirmEndBtn');
+    if (confirmEndBtn) {
+        confirmEndBtn.addEventListener('click', endConsultationDay);
+    }
+
+    const cancelEndBtn = document.getElementById('cancelEndBtn');
+    if (cancelEndBtn) {
+        cancelEndBtn.addEventListener('click', closeEndConsultationModal);
+    }
+
     renderDoctorDashboard();
 
     // Start real-time update interval for average time
@@ -584,6 +615,26 @@ async function startRealtimeAverageUpdate() {
             setText('displayAverageStat', formatDuration(consultation.averageSeconds));
         }
     }, 1000); // Update every second
+}
+
+async function pauseConsultation() {
+    const data = await getFirebaseOpdData();
+
+    if (!data) return;
+
+    const current = getCurrentPatient(data);
+
+    if (current) {
+        // Save the accumulated time when pausing
+        const elapsedThisSession = getElapsedSeconds(current);
+        current.accumulatedSeconds = (Number(current.accumulatedSeconds) || 0) + elapsedThisSession;
+        delete current.startedAt;
+        
+        console.log('Consultation paused. Accumulated time:', current.accumulatedSeconds);
+    }
+
+    await saveFirebaseOpdData(data);
+    renderDoctorDashboard(data);
 }
 
 async function serveNextPatient() {
@@ -618,6 +669,7 @@ async function serveNextPatient() {
 
     renderDoctorDashboard(data);
 }
+
 async function skipCurrentPatient() {
     const data = await getFirebaseOpdData();
 
@@ -653,6 +705,53 @@ async function skipCurrentPatient() {
 
     renderDoctorDashboard(data);
 }
+
+function showEndConsultationModal() {
+    const modal = document.getElementById('endConsultationModal');
+    if (modal) {
+        modal.style.display = 'flex';
+    }
+}
+
+function closeEndConsultationModal() {
+    const modal = document.getElementById('endConsultationModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+async function endConsultationDay() {
+    try {
+        const data = await getFirebaseOpdData();
+
+        if (!data) {
+            alert('Could not load consultation data');
+            return;
+        }
+
+        // Archive the current day
+        const archivedDay = archiveCurrentDay(data);
+        const history = archivedDay
+            ? [archivedDay, ...data.history].slice(0, MAX_HISTORY_DAYS)
+            : data.history;
+
+        // Create fresh day data
+        const newDay = createFreshDayData(history);
+        await saveFirebaseOpdData(newDay);
+
+        closeEndConsultationModal();
+        
+        alert('Consultation ended for today. OPD closed.');
+        console.log('OPD consultation ended and reset for new day');
+        
+        renderDoctorDashboard(newDay);
+
+    } catch (error) {
+        console.error('Error ending consultation:', error);
+        alert('Could not end consultation. Please try again.');
+    }
+}
+
 async function renderDoctorDashboard(firebaseData = null) {
     const data = firebaseData || await getFirebaseOpdData();
 
@@ -714,6 +813,7 @@ async function renderDoctorDashboard(firebaseData = null) {
 
     renderHistory(data);
 }
+
 function renderHistory(data) {
     const table = document.getElementById('historyTable');
     if (!table) return;
@@ -790,6 +890,20 @@ async function renderLivePatientList(firebaseData = null) {
         </tr>`).join('')
         : '<tr><td class="empty-row" colspan="4">No patients have registered yet.</td></tr>';
 }
+
+// Refresh page function (called by storage event and interval)
+function refreshPage() {
+    try {
+        renderStats();
+        renderLivePatientList();
+        if (document.getElementById('doctorHandled')) {
+            renderDoctorDashboard();
+        }
+    } catch (error) {
+        console.warn('Error refreshing page:', error);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     applyLoggedInUser();
     setupLogin();
