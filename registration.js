@@ -25,7 +25,9 @@ function showRegistrationSuccess(message) {
     }
 }
 
-async function saveDoctorToDatabase(doctorData) {
+// Accepts an optional userUid (from the created user). If not provided, will
+// fall back to auth.currentUser (legacy behaviour).
+async function saveDoctorToDatabase(doctorData, userUid = null) {
     try {
         if (!window.firebase || !window.firebase.db) {
             console.warn('Firebase database not initialized');
@@ -35,16 +37,22 @@ async function saveDoctorToDatabase(doctorData) {
         const { auth, ref, set } = window.firebase;
         const db = window.firebase.db;
 
-        const user = auth.currentUser;
+        // Prefer the explicit UID passed from the caller (returned by createUserWithEmailAndPassword)
+        // because auth.currentUser may not be populated immediately in all environments.
+        let uid = userUid;
+        if (!uid) {
+            const user = auth && auth.currentUser;
+            if (user) uid = user.uid;
+        }
 
-        if (!user) {
-            console.error('No authenticated Firebase user found');
+        if (!uid) {
+            console.error('No authenticated Firebase user found (no UID)');
             return false;
         }
 
         const timestamp = new Date().toISOString();
 
-        const doctorRef = ref(db, `doctors/${user.uid}`);
+        const doctorRef = ref(db, `doctors/${uid}`);
 
         await set(doctorRef, {
             name: doctorData.name,
@@ -58,7 +66,7 @@ async function saveDoctorToDatabase(doctorData) {
             status: 'active'
         });
 
-        console.log('Doctor saved to Firebase:', user.uid);
+        console.log('Doctor saved to Firebase:', uid);
 
         return true;
 
@@ -118,10 +126,11 @@ async function handleDoctorRegistration(event) {
     try {
         const { auth, createUserWithEmailAndPassword } = window.firebase;
         
-        // Create user account in Firebase Auth
-        await createUserWithEmailAndPassword(auth, email, password);
+        // Create user account in Firebase Auth and use the returned credential's UID
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const createdUid = userCredential && userCredential.user && userCredential.user.uid;
         
-        // Save doctor info to database
+        // Save doctor info to database (pass explicit UID)
         const saved = await saveDoctorToDatabase({
             name,
             email,
@@ -129,7 +138,7 @@ async function handleDoctorRegistration(event) {
             specialization,
             licenseNumber,
             password
-        });
+        }, createdUid);
 
         if (saved) {
             showRegistrationSuccess('Account created successfully! Redirecting to login...');
@@ -181,4 +190,3 @@ document.addEventListener('keydown', (event) => {
         }
     }
 });
-
