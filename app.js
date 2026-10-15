@@ -143,39 +143,66 @@ async function saveFirebaseOpdData(data) {
     }
 }
 
+
 function listenToFirebaseOpdData() {
     try {
         if (!window.firebase || !window.firebase.db) {
-            console.warn('Firebase database not initialized');
+            console.error("Firebase database not initialized");
             return;
         }
 
         const { auth, ref, onValue } = window.firebase;
         const db = window.firebase.db;
-
         const user = auth.currentUser;
 
         if (!user) {
-            console.warn('No authenticated user');
+            console.warn("No authenticated Firebase user");
             return;
         }
 
         const opdRef = ref(db, `opdData/${user.uid}`);
 
-        onValue(opdRef, snapshot => {
-            const data = snapshot.exists()
-                ? snapshot.val()
-                : createFreshDayData();
+        onValue(
+            opdRef,
+            (snapshot) => {
+                const rawData = snapshot.exists()
+                    ? snapshot.val()
+                    : createFreshDayData();
 
-            console.log('Firebase OPD data updated');
+                const data = {
+                    ...createFreshDayData(),
+                    ...rawData,
+                    patients: Array.isArray(rawData.patients)
+                        ? rawData.patients
+                        : Object.values(rawData.patients || {}),
+                    history: Array.isArray(rawData.history)
+                        ? rawData.history
+                        : []
+                };
 
-            renderStats(data);
-            renderLivePatientList(data);
+                console.log("Firebase OPD data updated");
 
-            if (document.getElementById('doctorHandled')) {
-                renderDoctorDashboard(data);
+                renderStats(data);
+                renderLivePatientList(data);
+
+                if (document.getElementById("doctorHandled")) {
+                    renderDoctorDashboard(data);
+                }
+            },
+            (error) => {
+                console.error(
+                    "Firebase realtime listener error:",
+                    error
+                );
             }
-        });
+        );
+    } catch (error) {
+        console.error(
+            "Firebase listener setup failed:",
+            error
+        );
+    }
+}
 
 //     } catch (error) {
 //         console.error(
@@ -553,14 +580,22 @@ function setupRegistration() {
             renderStats(data);
             renderLivePatientList();
 
+      
+       
         } catch (error) {
-            console.error('Patient registration failed:', error);
-            alert('Could not register patient. Please try again.');
+            console.error("Patient registration failed:", error);
+
+            alert(
+                "Registration failed: " +
+                (error.message || "Check Firebase connection and permissions.")
+            );
         } finally {
             if (submitButton) {
                 submitButton.disabled = false;
             }
         }
+
+
     });
 }
 
