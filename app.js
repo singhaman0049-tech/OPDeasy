@@ -177,16 +177,10 @@ function listenToFirebaseOpdData() {
             }
         });
 
-//     } catch (error) {
-//         console.error(
-//             'Firebase realtime listener error:',
-//             error
-//         );
-//     }
-// }
-} catch (error) {
-    console.error('Patient registration failed:', error);
-    alert('Registration failed: ' + error.message);
+    } catch (error) {
+        console.error('Patient registration failed:', error);
+        alert('Registration failed: ' + error.message);
+    }
 }
 
 function getActivePatients(data = getData()) {
@@ -217,8 +211,7 @@ function getConsultationSummary(data = getData()) {
         ? (Number(current.accumulatedSeconds) || 0) + getElapsedSeconds(current)
         : 0;
     const totalSeconds = (Number(data.totalConsultationSeconds) || 0) + pausedTime + currentTime;
-    
-    // Fixed average calculation: only count completed and current patients
+
     const totalCompletedTime = (Number(data.totalConsultationSeconds) || 0) + currentTime;
     const patientCountForAverage = completed + (current ? 1 : 0);
     const averageSeconds = patientCountForAverage > 0 ? totalCompletedTime / patientCountForAverage : 0;
@@ -226,13 +219,12 @@ function getConsultationSummary(data = getData()) {
     return { totalSeconds, averageSeconds };
 }
 
-// Fixed formatDuration to show hours, minutes, and seconds
 function formatDuration(seconds) {
     const totalSeconds = Math.max(0, Math.floor(seconds));
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const secs = totalSeconds % 60;
-    
+
     if (hours > 0) {
         return `${hours}h ${minutes}m ${secs}s`;
     }
@@ -291,7 +283,12 @@ function setText(id, value) {
     if (element) element.textContent = value;
 }
 
-// Firebase Database Functions
+function getDoctorDatabaseKey(email) {
+    if (!email) return null;
+    const cleanedEmail = String(email).trim().toLowerCase();
+    return cleanedEmail.replace(/\./g, '_');
+}
+
 async function isDoctorRegistered(email) {
     try {
         if (!window.firebase || !window.firebase.db) {
@@ -299,13 +296,25 @@ async function isDoctorRegistered(email) {
             return false;
         }
 
-        const { ref, get } = window.firebase;
+        const { auth, ref, get } = window.firebase;
         const db = window.firebase.db;
-        const emailKey = email.replace(/\./g, '_');
-        const doctorRef = ref(db, `doctors/${emailKey}`);
-        
-        const snapshot = await get(doctorRef);
-        return snapshot.exists();
+
+        const currentUser = auth && auth.currentUser ? auth.currentUser : null;
+        const sanitizedEmailKey = getDoctorDatabaseKey(email);
+
+        if (currentUser && currentUser.email && currentUser.email.toLowerCase() === String(email).trim().toLowerCase()) {
+            const doctorRef = ref(db, `doctors/${currentUser.uid}`);
+            const snapshot = await get(doctorRef);
+            if (snapshot.exists()) return true;
+        }
+
+        if (sanitizedEmailKey) {
+            const legacyDoctorRef = ref(db, `doctors/${sanitizedEmailKey}`);
+            const snapshot = await get(legacyDoctorRef);
+            if (snapshot.exists()) return true;
+        }
+
+        return false;
     } catch (error) {
         console.error('Error checking doctor registration:', error);
         return false;
@@ -399,7 +408,6 @@ async function handleLogin(doctorName, email, password) {
 
         console.log('Firebase login successful');
 
-        // Update last login time
         updateLastLogin().catch(error => {
             console.warn('Could not update last login:', error);
         });
@@ -437,7 +445,6 @@ async function handleLogin(doctorName, email, password) {
     }
 }
 
-
 function setupLogin() {
     const form = document.getElementById('loginForm');
 
@@ -451,12 +458,20 @@ function setupLogin() {
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
 
-        console.log('Login button clicked');
+        const doctorNameInput = document.getElementById('doctorName');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const rememberCheckbox = document.getElementById('rememberMe');
 
-        const doctorName = document.getElementById('doctorName').value.trim();
-        const email = document.getElementById('email').value.trim();
-        const password = document.getElementById('password').value;
-        const rememberMe = document.getElementById('rememberMe').checked;
+        if (!doctorNameInput || !emailInput || !passwordInput) {
+            showLoginError('Login form is incomplete.');
+            return;
+        }
+
+        const doctorName = doctorNameInput.value.trim();
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+        const rememberMe = rememberCheckbox ? rememberCheckbox.checked : false;
 
         if (!doctorName || !email || !password) {
             showLoginError('Please fill in all fields');
@@ -509,12 +524,21 @@ function setupRegistration() {
                 data = createFreshDayData();
             }
 
+            const patientName = document.getElementById('patientName');
+            const patientPhone = document.getElementById('patientPhone');
+            const patientAge = document.getElementById('patientAge');
+            const patientReason = document.getElementById('patientReason');
+
+            if (!patientName || !patientPhone || !patientAge || !patientReason) {
+                throw new Error('Patient registration form is incomplete');
+            }
+
             const patient = {
                 token: data.nextToken,
-                name: document.getElementById('patientName').value.trim(),
-                phone: document.getElementById('patientPhone').value.trim(),
-                age: document.getElementById('patientAge').value,
-                reason: document.getElementById('patientReason').value.trim(),
+                name: patientName.value.trim(),
+                phone: patientPhone.value.trim(),
+                age: patientAge.value,
+                reason: patientReason.value.trim(),
                 createdAt: new Date().toISOString(),
                 status: 'waiting'
             };
@@ -536,20 +560,17 @@ function setupRegistration() {
 
             setText('registeredToken', patient.token);
 
-            document
-                .getElementById('registrationNotice')
-                .classList.add('show');
-
-            form.reset();
-
-            document
-                .getElementById('registrationNotice')
-                .scrollIntoView({
+            const registrationNotice = document.getElementById('registrationNotice');
+            if (registrationNotice) {
+                registrationNotice.classList.add('show');
+                registrationNotice.scrollIntoView({
                     behavior: 'smooth',
                     block: 'nearest'
                 });
+            }
 
-            // Refresh UI
+            form.reset();
+
             renderStats(data);
             renderLivePatientList();
 
@@ -571,20 +592,20 @@ function setupDisplay() {
     renderLivePatientList();
 }
 
-
 function setupDoctorDashboard() {
     if (!document.getElementById('doctorHandled')) return;
 
-    document.getElementById('nextBtn').addEventListener('click', serveNextPatient);
-    document.getElementById('skipBtn').addEventListener('click', skipCurrentPatient);
-    
-    // Setup pause button functionality
+    const nextBtn = document.getElementById('nextBtn');
+    if (nextBtn) nextBtn.addEventListener('click', serveNextPatient);
+
+    const skipBtn = document.getElementById('skipBtn');
+    if (skipBtn) skipBtn.addEventListener('click', skipCurrentPatient);
+
     const pauseBtn = document.getElementById('pauseBtn');
     if (pauseBtn) {
         pauseBtn.addEventListener('click', pauseConsultation);
     }
 
-    // Setup end consultation button and modal
     const endBtn = document.getElementById('endBtn');
     if (endBtn) {
         endBtn.addEventListener('click', showEndConsultationModal);
@@ -601,12 +622,9 @@ function setupDoctorDashboard() {
     }
 
     renderDoctorDashboard();
-
-    // Start real-time update interval for average time
     startRealtimeAverageUpdate();
 }
 
-// Real-time update for average consultation time
 async function startRealtimeAverageUpdate() {
     setInterval(async () => {
         const data = await getFirebaseOpdData();
@@ -617,7 +635,7 @@ async function startRealtimeAverageUpdate() {
             setText('displayAverage', formatDuration(consultation.averageSeconds));
             setText('displayAverageStat', formatDuration(consultation.averageSeconds));
         }
-    }, 1000); // Update every second
+    }, 1000);
 }
 
 async function pauseConsultation() {
@@ -628,11 +646,10 @@ async function pauseConsultation() {
     const current = getCurrentPatient(data);
 
     if (current) {
-        // Save the accumulated time when pausing
         const elapsedThisSession = getElapsedSeconds(current);
         current.accumulatedSeconds = (Number(current.accumulatedSeconds) || 0) + elapsedThisSession;
         delete current.startedAt;
-        
+
         console.log('Consultation paused. Accumulated time:', current.accumulatedSeconds);
     }
 
@@ -732,21 +749,19 @@ async function endConsultationDay() {
             return;
         }
 
-        // Archive the current day
         const archivedDay = archiveCurrentDay(data);
         const history = archivedDay
             ? [archivedDay, ...data.history].slice(0, MAX_HISTORY_DAYS)
             : data.history;
 
-        // Create fresh day data
         const newDay = createFreshDayData(history);
         await saveFirebaseOpdData(newDay);
 
         closeEndConsultationModal();
-        
+
         alert('Consultation ended for today. OPD closed.');
         console.log('OPD consultation ended and reset for new day');
-        
+
         renderDoctorDashboard(newDay);
 
     } catch (error) {
@@ -784,35 +799,38 @@ async function renderDoctorDashboard(firebaseData = null) {
             : '--'
     );
 
-    document.getElementById('skipBtn').disabled = !current;
-
-    document.getElementById('skipBtn').style.opacity =
-        current ? '1' : '.55';
+    const skipBtn = document.getElementById('skipBtn');
+    if (skipBtn) {
+        skipBtn.disabled = !current;
+        skipBtn.style.opacity = current ? '1' : '.55';
+    }
 
     const queue = data.patients.filter(
         patient => patient.status !== 'completed'
     );
 
-    table.innerHTML = queue.length
-        ? queue.map(patient => `<tr>
-            <td>${patient.token}</td>
-            <td>${escapeHtml(patient.name)}</td>
-            <td>${patient.age || '--'}</td>
-            <td>${formatTime(patient.createdAt)}</td>
-            <td>
-                <span class="status ${patient.status}">
-                    ${formatStatus(patient.status)}
-                </span>
-            </td>
-            <td>
-                ${
-                    patient.status === 'consulting'
-                        ? 'Now'
-                        : `${getPosition(patient, data)} in queue`
-                }
-            </td>
-        </tr>`).join('')
-        : '<tr><td class="empty-row" colspan="6">No patients are waiting for consultation.</td></tr>';
+    if (table) {
+        table.innerHTML = queue.length
+            ? queue.map(patient => `<tr>
+                <td>${patient.token}</td>
+                <td>${escapeHtml(patient.name)}</td>
+                <td>${patient.age || '--'}</td>
+                <td>${formatTime(patient.createdAt)}</td>
+                <td>
+                    <span class="status ${patient.status}">
+                        ${formatStatus(patient.status)}
+                    </span>
+                </td>
+                <td>
+                    ${
+                        patient.status === 'consulting'
+                            ? 'Now'
+                            : `${getPosition(patient, data)} in queue`
+                    }
+                </td>
+            </tr>`).join('')
+            : '<tr><td class="empty-row" colspan="6">No patients are waiting for consultation.</td></tr>';
+    }
 
     renderHistory(data);
 }
@@ -871,8 +889,7 @@ async function renderLivePatientList(firebaseData = null) {
 
     if (!data) return;
 
-    const activePatients =
-        getActivePatients(data).slice(0, 10);
+    const activePatients = getActivePatients(data).slice(0, 10);
 
     table.innerHTML = activePatients.length
         ? activePatients.map(patient => `<tr>
@@ -894,7 +911,6 @@ async function renderLivePatientList(firebaseData = null) {
         : '<tr><td class="empty-row" colspan="4">No patients have registered yet.</td></tr>';
 }
 
-// Refresh page function (called by storage event and interval)
 function refreshPage() {
     try {
         renderStats();
@@ -914,7 +930,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setupDisplay();
     setupDoctorDashboard();
 
-    // Start Firebase real-time updates
     if (window.firebase && window.firebase.auth && window.firebase.onAuthStateChanged) {
         window.firebase.onAuthStateChanged(
             window.firebase.auth,
