@@ -144,6 +144,7 @@ async function saveFirebaseOpdData(data) {
 }
 
 
+
 function listenToFirebaseOpdData() {
     try {
         if (!window.firebase || !window.firebase.db) {
@@ -202,14 +203,9 @@ function listenToFirebaseOpdData() {
             error
         );
     }
+}
 
-//     } catch (error) {
-//         console.error(
-//             'Firebase realtime listener error:',
-//             error
-//         );
-//     }
-// }
+
 } catch (error) {
     console.error('Patient registration failed:', error);
     alert('Registration failed: ' + error.message);
