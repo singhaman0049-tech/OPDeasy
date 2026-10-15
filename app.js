@@ -202,7 +202,6 @@ function listenToFirebaseOpdData() {
             error
         );
     }
-}
 
 //     } catch (error) {
 //         console.error(
