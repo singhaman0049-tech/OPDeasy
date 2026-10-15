@@ -177,14 +177,17 @@ function listenToFirebaseOpdData() {
             }
         });
 
-    } catch (error) {
-        console.error(
-            'Firebase realtime listener error:',
-            error
-        );
-    }
+//     } catch (error) {
+//         console.error(
+//             'Firebase realtime listener error:',
+//             error
+//         );
+//     }
+// }
+} catch (error) {
+    console.error('Patient registration failed:', error);
+    alert('Registration failed: ' + error.message);
 }
-
 
 function getActivePatients(data = getData()) {
     return data.patients.filter(patient => patient.status !== 'completed');
