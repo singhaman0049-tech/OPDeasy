@@ -196,7 +196,7 @@ function getCurrentPatient(data = getData()) {
 }
 
 function getElapsedSeconds(patient) {
-    const startTime = patient?.startedAt ? Date.parse(patient.startedAt) : NaN;
+    const startTime = (patient && patient.startedAt) ? Date.parse(patient.startedAt) : NaN;
     return Number.isFinite(startTime) ? Math.max(0, (Date.now() - startTime) / 1000) : 0;
 }
 
